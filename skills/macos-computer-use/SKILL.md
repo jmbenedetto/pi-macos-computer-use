@@ -26,7 +26,8 @@ Use the `computer_use` tool for macOS GUI automation through Cua Driver.
 	- After click, type, key, scroll, drag, focus, or launch, run capture again before continuing.
 - Keep actions small.
 	- Do one GUI action at a time.
-	- Include `targetDescription` or a valid `recentCaptureId` returned by a successful recent capture for mutating actions.
+	- Include `targetDescription` for every mutating action.
+	- Include a valid `recentCaptureId` returned by a successful recent capture when available.
 	- Verify the result before the next action.
 
 ## Safety Rules
@@ -56,7 +57,8 @@ Use the `computer_use` tool for macOS GUI automation through Cua Driver.
 	- `text`: non-secret text only.
 	- Include `targetDescription` for safety review.
 - Key/scroll/drag:
-	- Include `targetDescription` or a valid `recentCaptureId`.
+	- Include `targetDescription`.
+	- Include a valid `recentCaptureId` when available.
 	- Use only after latest capture confirms target state.
 	- Recapture immediately after.
 

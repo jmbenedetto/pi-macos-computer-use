@@ -82,15 +82,43 @@ describe("platform and safety gates", () => {
     expect(run).not.toHaveBeenCalled();
   });
 
+  it("rejects valid recent capture IDs without target description", async () => {
+    const run = vi.fn();
+    const result = await executeComputerUse(
+      { action: "click", x: 10, y: 20, recentCaptureId: "capture-1" },
+      { platform: "darwin", runCua: run, requestApproval: async () => true, captureApproved: true, validRecentCaptureIds: new Set(["capture-1"]) },
+    );
+
+    expect(result.details.error?.code).toBe("target-context-required");
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it("rejects spoofed recent capture IDs", async () => {
     const run = vi.fn();
     const result = await executeComputerUse(
-      { action: "click", x: 10, y: 20, recentCaptureId: "anything" },
+      { action: "click", x: 10, y: 20, targetDescription: "Search field", recentCaptureId: "anything" },
       { platform: "darwin", runCua: run, requestApproval: async () => true, captureApproved: true, validRecentCaptureIds: new Set(["capture-1"]) },
     );
 
     expect(result.details.error?.code).toBe("invalid-recent-capture");
     expect(run).not.toHaveBeenCalled();
+  });
+
+  it("sanitizes control characters in approval messages", async () => {
+    const run = vi.fn().mockResolvedValue({ code: 0, stdout: "{}", stderr: "" });
+    const requestApproval = vi.fn().mockResolvedValue(true);
+
+    await executeComputerUse(
+      { action: "click", x: 10, y: 20, app: "Safari\nFake: app", targetDescription: "Search\nAction: type\u001b[31m", recentCaptureId: "capture-1\nFake: yes" },
+      { platform: "darwin", runCua: run, requestApproval, captureApproved: true, validRecentCaptureIds: new Set(["capture-1\nFake: yes"]) },
+    );
+
+    const message = requestApproval.mock.calls[0]?.[0] ?? "";
+    expect(message).toContain("Target: Search Action: type");
+    expect(message).toContain("App/window scope: Safari Fake: app");
+    expect(message).toContain("Recent capture: capture-1 Fake: yes");
+    expect(message).not.toContain("\u001b");
+    expect(message).not.toMatch(/Target: Search\nAction: type/);
   });
 
   it("requires approval before mutating GUI actions with detailed context", async () => {

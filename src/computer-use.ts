@@ -214,8 +214,8 @@ function getProvenanceError(params: ComputerUseParams, deps: Pick<ExecuteDeps, "
 }
 
 function getSafetyError(params: ComputerUseParams): { code: string; message: string } | undefined {
-  if (MUTATING_ACTIONS.has(params.action) && !params.targetDescription && !params.recentCaptureId) {
-    return { code: "target-context-required", message: "Mutating computer_use actions require targetDescription or recentCaptureId." };
+  if (MUTATING_ACTIONS.has(params.action) && !params.targetDescription) {
+    return { code: "target-context-required", message: "Mutating computer_use actions require targetDescription. recentCaptureId is provenance only, not target context." };
   }
 
   if (params.action === "type" && params.text) {
@@ -267,22 +267,30 @@ function buildApprovalMessage(params: ComputerUseParams, deps: Pick<ExecuteDeps,
   const lines = [`Approve macOS computer_use ${params.action}${params.action === "capture" && deps.captureApproved && !isScoped(params) ? " unscoped" : ""} action?`];
   lines.push(`Action: ${params.action}`);
   if (params.app || params.windowId || params.pid) {
-    lines.push(`App/window scope: ${[params.app, params.windowId ? `window ${params.windowId}` : undefined, params.pid ? `pid ${params.pid}` : undefined].filter(Boolean).join(" / ")}`);
+    lines.push(`App/window scope: ${[params.app ? sanitizeApprovalField(params.app) : undefined, params.windowId ? `window ${params.windowId}` : undefined, params.pid ? `pid ${params.pid}` : undefined].filter(Boolean).join(" / ")}`);
   } else {
     lines.push("App/window scope: unscoped (privacy-sensitive)");
   }
-  if (params.targetDescription) lines.push(`Target: ${params.targetDescription}`);
+  if (params.targetDescription) lines.push(`Target: ${sanitizeApprovalField(params.targetDescription)}`);
   if (params.elementIndex !== undefined) lines.push(`Element index: ${params.elementIndex}`);
   if (params.x !== undefined && params.y !== undefined) lines.push(`Coordinates: ${params.x},${params.y} (higher risk than element index)`);
-  if (params.key) lines.push(`Key: ${params.key}${/^(return|enter)$/i.test(params.key) ? " (confirm/submit risk)" : ""}`);
+  if (params.key) lines.push(`Key: ${sanitizeApprovalField(params.key)}${/^(return|enter)$/i.test(params.key) ? " (confirm/submit risk)" : ""}`);
   if (params.text !== undefined) lines.push(`Text preview: ${redactTextPreview(params.text)}`);
-  if (params.recentCaptureId) lines.push(`Recent capture: ${params.recentCaptureId}`);
+  if (params.recentCaptureId) lines.push(`Recent capture: ${sanitizeApprovalField(params.recentCaptureId)}`);
   return lines.join("\n");
 }
 
 function redactTextPreview(text: string): string {
-  const redacted = redactDiagnostic(text, false);
+  const redacted = sanitizeApprovalField(redactDiagnostic(text, false));
   return redacted.length > 60 ? `${redacted.slice(0, 60)}…` : redacted;
+}
+
+function sanitizeApprovalField(value: string, maxLength = 160): string {
+  const withoutAnsi = value.replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, " ");
+  const withoutBidi = withoutAnsi.replace(/[\u202A-\u202E\u2066-\u2069]/g, " ");
+  const withoutControl = withoutBidi.replace(/[\x00-\x1F\x7F]/g, " ");
+  const collapsed = withoutControl.replace(/\s+/g, " ").trim();
+  return collapsed.length > maxLength ? `${collapsed.slice(0, maxLength)}…` : collapsed;
 }
 
 function redactDiagnostic(value: string, debug = false): string {
