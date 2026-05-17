@@ -137,6 +137,18 @@ describe("platform and safety gates", () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
+  it("includes zero window and process identifiers in approval scope", async () => {
+    const run = vi.fn().mockResolvedValue({ code: 0, stdout: "{}", stderr: "" });
+    const requestApproval = vi.fn().mockResolvedValue(true);
+
+    await executeComputerUse(
+      { action: "click", x: 10, y: 20, windowId: 0, pid: 0, targetDescription: "Search field" },
+      { platform: "darwin", runCua: run, requestApproval, captureApproved: true },
+    );
+
+    expect(requestApproval).toHaveBeenCalledWith(expect.stringContaining("App/window scope: window 0 / pid 0"));
+  });
+
   it("does not invoke Cua when approval is denied", async () => {
     const run = vi.fn();
     const requestApproval = vi.fn().mockResolvedValue(false);
@@ -239,6 +251,17 @@ describe("Cua result normalization", () => {
     expect(result.details.error?.message).not.toContain("/Users/alice");
     expect(result.details.error?.message).toContain("[REDACTED_SECRET]");
     expect(result.details.error?.message).toContain("[REDACTED_PATH]");
+  });
+
+  it("preserves diagnostic key labels when redacting key-value secrets", () => {
+    const result = normalizeCuaResult(
+      { code: 1, stdout: "", stderr: "failed token=abcd1234secretvalue password=hunter2" },
+      { action: "capture" },
+    );
+
+    expect(result.details.error?.message).toContain("token=[REDACTED_SECRET]");
+    expect(result.details.error?.message).toContain("password=[REDACTED_SECRET]");
+    expect(result.details.error?.message).not.toContain("hunter2");
   });
 
   it("warns when capture succeeds without image content", () => {

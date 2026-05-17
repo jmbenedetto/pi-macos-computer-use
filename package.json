@@ -24,9 +24,9 @@
     "lint": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": "*",
-    "typebox": "*"
+    "@earendil-works/pi-ai": ">=0.74.0 <1.0.0",
+    "@earendil-works/pi-coding-agent": ">=0.74.0 <1.0.0",
+    "typebox": ">=1.1.38 <2.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",

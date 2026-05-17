@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { StringEnum, Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -20,13 +21,12 @@ const ComputerUseParams = Type.Object({
   key: Type.Optional(Type.String({ description: "Key or key chord for key action." })),
   direction: Type.Optional(StringEnum(["up", "down", "left", "right"] as const)),
   amount: Type.Optional(Type.Number({ description: "Scroll or drag amount when supported by Cua." })),
-  targetDescription: Type.Optional(Type.String({ description: "Human-readable target description for safety review. Required for mutating actions unless recentCaptureId is supplied." })),
+  targetDescription: Type.Optional(Type.String({ description: "Human-readable target description for safety review. Required for mutating actions." })),
   recentCaptureId: Type.Optional(Type.String({ description: "Identifier from a recent capture used as provenance for this mutating action." })),
 });
 
 export default function macosComputerUse(pi: ExtensionAPI) {
   let captureApproved = false;
-  let captureCounter = 0;
   const validRecentCaptureIds = new Set<string>();
   pi.registerTool({
     name: "computer_use",
@@ -55,8 +55,7 @@ export default function macosComputerUse(pi: ExtensionAPI) {
 
       if (params.action === "capture" && result.details.ok) {
         captureApproved = true;
-        captureCounter += 1;
-        const recentCaptureId = `capture-${captureCounter}`;
+        const recentCaptureId = `capture-${randomUUID()}`;
         validRecentCaptureIds.add(recentCaptureId);
         while (validRecentCaptureIds.size > 5) {
           const oldest = validRecentCaptureIds.values().next().value as string | undefined;

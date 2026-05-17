@@ -260,14 +260,14 @@ function requiresApproval(params: ComputerUseParams, deps: Pick<ExecuteDeps, "ca
 }
 
 function isScoped(params: ComputerUseParams): boolean {
-  return Boolean(params.app || params.windowId || params.pid);
+  return Boolean(params.app || params.windowId !== undefined || params.pid !== undefined);
 }
 
 function buildApprovalMessage(params: ComputerUseParams, deps: Pick<ExecuteDeps, "captureApproved">): string {
   const lines = [`Approve macOS computer_use ${params.action}${params.action === "capture" && deps.captureApproved && !isScoped(params) ? " unscoped" : ""} action?`];
   lines.push(`Action: ${params.action}`);
-  if (params.app || params.windowId || params.pid) {
-    lines.push(`App/window scope: ${[params.app ? sanitizeApprovalField(params.app) : undefined, params.windowId ? `window ${params.windowId}` : undefined, params.pid ? `pid ${params.pid}` : undefined].filter(Boolean).join(" / ")}`);
+  if (params.app || params.windowId !== undefined || params.pid !== undefined) {
+    lines.push(`App/window scope: ${[params.app ? sanitizeApprovalField(params.app) : undefined, params.windowId !== undefined ? `window ${params.windowId}` : undefined, params.pid !== undefined ? `pid ${params.pid}` : undefined].filter(Boolean).join(" / ")}`);
   } else {
     lines.push("App/window scope: unscoped (privacy-sensitive)");
   }
@@ -297,7 +297,7 @@ function redactDiagnostic(value: string, debug = false): string {
   if (debug) return value;
   return value
     .replace(/sk-[A-Za-z0-9_-]{8,}/g, "[REDACTED_SECRET]")
-    .replace(/\b(?:token|key|api[_-]?key|password|secret)=\S+/gi, "$1=[REDACTED_SECRET]")
+    .replace(/(\b(?:token|key|api[_-]?key|password|secret))=\S+/gi, "$1=[REDACTED_SECRET]")
     .replace(/\b[A-Za-z0-9_=-]{32,}\b/g, "[REDACTED_SECRET]")
     .replace(/(?:\/Users\/|\/home\/|\/private\/|\/var\/|\/tmp\/)[^\s:'\"]+/g, "[REDACTED_PATH]");
 }
