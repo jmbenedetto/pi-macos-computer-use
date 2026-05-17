@@ -1,0 +1,44 @@
+{
+  "name": "pi-macos-computer-use",
+  "version": "0.1.0",
+  "description": "Pi extension for macOS background computer use via Cua Driver.",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "macos",
+    "computer-use",
+    "cua"
+  ],
+  "license": "MIT",
+  "main": "extensions/index.ts",
+  "files": [
+    "extensions",
+    "skills",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  }
+}
