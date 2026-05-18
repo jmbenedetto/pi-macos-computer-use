@@ -3,6 +3,8 @@
 ### Requirement: Public API uses Hermes-compatible actions
 The `computer_use` tool SHALL expose Hermes-compatible action names as the primary public API: `capture`, `click`, `double_click`, `right_click`, `middle_click`, `drag`, `scroll`, `type`, `key`, `set_value`, `wait`, `list_apps`, and `focus_app`.
 
+`launch_app` MAY be exposed as a package-specific launch action and `launch` MAY be accepted as a compatibility alias, but neither is part of the primary Hermes-compatible action set.
+
 #### Scenario: Agent sees Hermes-compatible actions
 - **WHEN** the Pi extension registers the `computer_use` tool
 - **THEN** the tool schema includes the Hermes-compatible action names.

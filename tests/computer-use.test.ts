@@ -226,6 +226,17 @@ describe("platform, approval, and safety gates", () => {
     expect(secret.details.error?.code).toBe("secret-blocked");
     expect(otp.details.error?.code).toBe("secret-blocked");
   });
+
+  it("blocks credential-like value fallback from type actions", async () => {
+    const run = vi.fn();
+    const result = await executeComputerUse(
+      { action: "type", value: "sk-1234567890abcdef1234567890abcdef", targetDescription: "Text field" },
+      { platform: "darwin", runCua: run, requestApproval: async () => true, captureApproved: true },
+    );
+
+    expect(result.details.error?.code).toBe("secret-blocked");
+    expect(run).not.toHaveBeenCalled();
+  });
 });
 
 describe("Cua result normalization", () => {

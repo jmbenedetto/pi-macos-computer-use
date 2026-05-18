@@ -11,3 +11,4 @@
 - 2026-05-17: Backed up files for `port-hermes-cua-translation-layer` implementation under `.agents/tmp/backups/port-hermes-cua-translation-layer/`.
 - 2026-05-17: Implemented Hermes-compatible Cua translation layer, capture context store, safety/approval preservation, status diagnostics, docs/skill updates, and tests for `port-hermes-cua-translation-layer`.
 - 2026-05-17: Marked code/doc/test OpenSpec tasks for `port-hermes-cua-translation-layer`; then completed live Cua verification with evidence under `.agents/tmp/live-verification/`.
+- 2026-05-18: Addressed Greptile and CodeRabbit PR review items: blocked `type` value-secret bypass, raised Cua command output buffer, and clarified launch action spec contract.

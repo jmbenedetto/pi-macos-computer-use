@@ -513,8 +513,9 @@ function getSafetyError(params: ComputerUseParams): { code: string; message: str
   if (usesCoordinate(params) && !params.recentCaptureId) {
     return { code: "capture-context-required", message: "Coordinate actions use latest-capture image/window coordinates and require a valid recentCaptureId. Capture first or use an element index." };
   }
-  if (params.action === "type" && params.text) {
-    if (SECRET_TEXT_PATTERN.test(params.text) || SECRET_VALUE_PATTERN.test(params.text) || OTP_PATTERN.test(params.text)) {
+  if (params.action === "type") {
+    const typeText = params.text ?? params.value;
+    if (typeText && (SECRET_TEXT_PATTERN.test(typeText) || SECRET_VALUE_PATTERN.test(typeText) || OTP_PATTERN.test(typeText))) {
       return { code: "secret-blocked", message: "Refusing to type content that looks like a secret, credential, or verification code." };
     }
   }

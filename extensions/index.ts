@@ -115,7 +115,7 @@ async function runCua(args: string[], timeoutMs: number, signal?: AbortSignal): 
 
 async function runShell(command: string, args: string[], timeoutMs: number, signal?: AbortSignal): Promise<CommandResult> {
   try {
-    const result = await execFileAsync(command, args, { timeout: timeoutMs, signal, maxBuffer: 1024 * 1024 });
+    const result = await execFileAsync(command, args, { timeout: timeoutMs, signal, maxBuffer: 20 * 1024 * 1024 });
     return { code: 0, stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
     const err = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string; code?: number | string };
