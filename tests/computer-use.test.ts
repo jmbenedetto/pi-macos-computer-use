@@ -2,7 +2,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { COMPUTER_USE_ACTIONS } from "../extensions/index.js";
+import { COMPUTER_USE_ACTIONS, runShell } from "../extensions/index.js";
 import {
   HERMES_ACTIONS,
   RecentCaptureStore,
@@ -293,6 +293,16 @@ describe("Cua result normalization", () => {
     expect(result.details.error?.message).toContain("token=[REDACTED_SECRET]");
     expect(result.details.error?.message).toContain("password=[REDACTED_SECRET]");
     expect(result.details.error?.message).toContain("[REDACTED_PATH]");
+  });
+});
+
+describe("extension shell runner", () => {
+  it("rethrows aborted executions so cancellation is preserved", async () => {
+    const controller = new AbortController();
+    const pending = runShell(process.execPath, ["-e", "setTimeout(() => {}, 10000)"], 30_000, controller.signal);
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ code: "ABORT_ERR" });
   });
 });
 

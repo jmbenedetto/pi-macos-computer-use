@@ -113,13 +113,13 @@ async function runCua(args: string[], timeoutMs: number, signal?: AbortSignal): 
   return runShell("cua-driver", args, timeoutMs, signal);
 }
 
-async function runShell(command: string, args: string[], timeoutMs: number, signal?: AbortSignal): Promise<CommandResult> {
+export async function runShell(command: string, args: string[], timeoutMs: number, signal?: AbortSignal): Promise<CommandResult> {
   try {
     const result = await execFileAsync(command, args, { timeout: timeoutMs, signal, maxBuffer: 20 * 1024 * 1024 });
     return { code: 0, stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
-    const err = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string; code?: number | string };
-    if (err.code === "ENOENT") throw err;
+    const err = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string; code?: number | string; name?: string };
+    if (err.code === "ENOENT" || err.code === "ABORT_ERR" || err.name === "AbortError") throw err;
     return { code: typeof err.code === "number" ? err.code : 1, stdout: err.stdout ?? "", stderr: err.stderr ?? err.message };
   }
 }
