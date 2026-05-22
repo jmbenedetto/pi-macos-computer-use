@@ -7,3 +7,9 @@
 - 2026-05-15: Fixed security re-review finding by validating recent capture IDs against extension-issued IDs and adding screenshot-path hardening tests.
 - 2026-05-17: Fixed PR review findings by requiring `targetDescription` for mutating actions and sanitizing human-facing approval fields.
 - 2026-05-17: Addressed CodeRabbit review items: random capture IDs, schema description alignment, peer dependency ranges, redaction label preservation, and strict numeric scope checks.
+- 2026-05-17: Created OpenSpec change `port-hermes-cua-translation-layer` to align Pi API with Hermes-style Cua translation and update companion skill guidance.
+- 2026-05-17: Backed up files for `port-hermes-cua-translation-layer` implementation under `.agents/tmp/backups/port-hermes-cua-translation-layer/`.
+- 2026-05-17: Implemented Hermes-compatible Cua translation layer, capture context store, safety/approval preservation, status diagnostics, docs/skill updates, and tests for `port-hermes-cua-translation-layer`.
+- 2026-05-17: Marked code/doc/test OpenSpec tasks for `port-hermes-cua-translation-layer`; then completed live Cua verification with evidence under `.agents/tmp/live-verification/`.
+- 2026-05-18: Addressed Greptile and CodeRabbit PR review items: blocked `type` value-secret bypass, raised Cua command output buffer, and clarified launch action spec contract.
+- 2026-05-18: Addressed CodeRabbit abort-handling review by preserving `AbortError`/`ABORT_ERR` cancellation from Cua shell execution and adding regression coverage.
