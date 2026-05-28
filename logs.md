@@ -13,3 +13,9 @@
 - 2026-05-17: Marked code/doc/test OpenSpec tasks for `port-hermes-cua-translation-layer`; then completed live Cua verification with evidence under `.agents/tmp/live-verification/`.
 - 2026-05-18: Addressed Greptile and CodeRabbit PR review items: blocked `type` value-secret bypass, raised Cua command output buffer, and clarified launch action spec contract.
 - 2026-05-18: Addressed CodeRabbit abort-handling review by preserving `AbortError`/`ABORT_ERR` cancellation from Cua shell execution and adding regression coverage.
+- 2026-05-28 12:06 -03: Created backups for `src/computer-use.ts` and `tests/computer-use.test.ts` under `.backup/` before capture debugging changes.
+- 2026-05-28 12:08 -03: Updated `src/computer-use.ts` and `tests/computer-use.test.ts` for SOM screenshot capture, metadata preservation, no-image warning behavior, and tiny-window scoring.
+- 2026-05-28 12:18 -03: Reviewed and corrected `src/computer-use.ts` and `tests/computer-use.test.ts` to preserve MCP-wrapped SOM payloads, keep invalid JSON failures surfaced, and retain low-element capture warnings.
+- 2026-05-28 12:19 -03: Finalized `src/computer-use.ts` invalid-JSON handling for SOM screenshot injection and re-ran package test/typecheck/lint commands successfully.
+- 2026-05-28 12:33 -03: Updated `src/computer-use.ts`, `tests/computer-use.test.ts`, and `.gitignore` so capture screenshots are persisted under `.agents/screenshot/` and ignored by git.
+- 2026-05-28 12:42 -03: Updated `extensions/index.ts`, `src/computer-use.ts`, and tests so capture screenshots resolve under Pi tool context `ctx.cwd` (the active project), not the installed package or extension repo.

@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { access, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -51,6 +51,79 @@ describe("Cua translation layer", () => {
 
     expect(run.mock.calls.map((call) => call[0][1])).toEqual(["list_windows", "get_window_state"]);
     expect(run.mock.calls.map((call) => call[0][1])).not.toContain("capture");
+  });
+
+  it("requests a screenshot file for som capture, attaches image content, and preserves Cua data", async () => {
+    const projectDir = await mkdtemp(join(tmpdir(), "pi-project-"));
+    const run = vi.fn(async (args: string[]) => {
+      if (args[1] === "list_windows") return { code: 0, stdout: JSON.stringify({ windows }), stderr: "" };
+      const screenshotFlagIndex = args.indexOf("--screenshot-out-file");
+      expect(args[1]).toBe("get_window_state");
+      expect(screenshotFlagIndex).toBeGreaterThan(-1);
+      const screenshotPath = args[screenshotFlagIndex + 1];
+      expect(screenshotPath).toContain(join(projectDir, ".agents", "screenshot", "capture-"));
+      await writeFile(screenshotPath, Buffer.from(png, "base64"));
+      return {
+        code: 0,
+        stdout: JSON.stringify({
+          structuredContent: { tree_markdown: "- Safari\n  - Address", element_count: 3 },
+          content: [{ type: "text", text: "AX tree preserved" }],
+        }),
+        stderr: "",
+      };
+    });
+
+    const result = await executeComputerUse({ action: "capture", app: "Safari", mode: "som" }, { platform: "darwin", runCua: run, requestApproval: async () => true, captureApproved: true, captureContexts: new RecentCaptureStore(), cwd: projectDir });
+
+    const screenshotArg = run.mock.calls[1]?.[0].at(-1) as string;
+    await expect(access(screenshotArg)).resolves.toBeUndefined();
+    expect(result.content).toContainEqual({ type: "image", mimeType: "image/png", data: png });
+    expect(result.content).toContainEqual({ type: "text", text: "AX tree preserved" });
+    expect(result.details.warning).toBeUndefined();
+    expect(result.details.data).toMatchObject({ tree_markdown: "- Safari\n  - Address", element_count: 3, elementCount: 3, mode: "som" });
+  });
+
+  it("does not warn about absent image content for ax or semantic captures", async () => {
+    for (const mode of ["ax", "semantic"] as const) {
+      const run = runWithWindows({ tree_markdown: "- Safari", element_count: 3, screenshot_base64: undefined, screenshot_media_type: undefined });
+      const result = await executeComputerUse({ action: "capture", app: "Safari", mode }, { platform: "darwin", runCua: run, requestApproval: async () => true, captureApproved: true, captureContexts: new RecentCaptureStore() });
+
+      expect(result.details.ok).toBe(true);
+      expect(result.details.warning).toBeUndefined();
+      expect(result.content[0]).toMatchObject({ type: "text", text: expect.not.stringContaining("no usable image") });
+    }
+  });
+
+  it("keeps invalid som JSON as an error even when a screenshot file was requested", async () => {
+    const projectDir = await mkdtemp(join(tmpdir(), "pi-project-"));
+    const run = vi.fn(async (args: string[]) => {
+      if (args[1] === "list_windows") return { code: 0, stdout: JSON.stringify({ windows }), stderr: "" };
+      const screenshotFlagIndex = args.indexOf("--screenshot-out-file");
+      expect(screenshotFlagIndex).toBeGreaterThan(-1);
+      const screenshotPath = args[screenshotFlagIndex + 1];
+      expect(screenshotPath).toContain(join(projectDir, ".agents", "screenshot", "capture-"));
+      await writeFile(screenshotPath, Buffer.from(png, "base64"));
+      return { code: 0, stdout: "not json", stderr: "" };
+    });
+
+    const result = await executeComputerUse({ action: "capture", app: "Safari", mode: "som" }, { platform: "darwin", runCua: run, requestApproval: async () => true, captureApproved: true, captureContexts: new RecentCaptureStore(), cwd: projectDir });
+
+    expect(result.details.ok).toBe(false);
+    expect(result.details.error?.code).toBe("invalid-json");
+  });
+
+  it("scores tiny thumbnail-like windows below normal visible windows", async () => {
+    const normal = { pid: 123, window_id: 456, app: "Safari", title: "Normal", is_on_current_space: true, on_screen: true, layer: 0, width: 900, height: 700 };
+    const tiny = { pid: 999, window_id: 111, app: "Safari", title: "Tiny", is_on_current_space: true, on_screen: true, layer: 0, width: 120, height: 90 };
+    const run = vi.fn(async (args: string[]) => {
+      if (args[1] === "list_windows") return { code: 0, stdout: JSON.stringify({ windows: [tiny, normal] }), stderr: "" };
+      return { code: 0, stdout: JSON.stringify({ elements: [{ id: 1 }, { id: 2 }, { id: 3 }] }), stderr: "" };
+    });
+
+    const result = await executeComputerUse({ action: "capture", app: "Safari", mode: "ax" }, { platform: "darwin", runCua: run, requestApproval: async () => true, captureApproved: true, captureContexts: new RecentCaptureStore() });
+
+    expect(run.mock.calls[1]?.[0][2]).toContain('"window_id":456');
+    expect(result.details.data).toMatchObject({ target: expect.objectContaining({ windowId: 456, title: "Normal" }) });
   });
 
   it("does not forward type, key, focus, or launch aliases as raw wrapper names", async () => {

@@ -1,3 +1,4 @@
 node_modules/
 .agents/tmp/
+.agents/screenshot/
 .DS_Store
