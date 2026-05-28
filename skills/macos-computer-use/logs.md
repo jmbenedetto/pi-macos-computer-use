@@ -1,0 +1,1 @@
+- 2026-05-28 16:32 -03 | changed: SKILL.md | reason: clarify browser/web task boundary | summary: removed real-browser-GUI carve-out and directs all browser/web automation to browser-navigation.
