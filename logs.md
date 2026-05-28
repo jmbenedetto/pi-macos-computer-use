@@ -19,3 +19,4 @@
 - 2026-05-28 12:19 -03: Finalized `src/computer-use.ts` invalid-JSON handling for SOM screenshot injection and re-ran package test/typecheck/lint commands successfully.
 - 2026-05-28 12:33 -03: Updated `src/computer-use.ts`, `tests/computer-use.test.ts`, and `.gitignore` so capture screenshots are persisted under `.agents/screenshot/` and ignored by git.
 - 2026-05-28 12:42 -03: Updated `extensions/index.ts`, `src/computer-use.ts`, and tests so capture screenshots resolve under Pi tool context `ctx.cwd` (the active project), not the installed package or extension repo.
+- 2026-05-28 16:32 -03: Updated `skills/macos-computer-use/SKILL.md` and added `skills/macos-computer-use/logs.md` to direct all browser/web tasks to `browser-navigation` and keep `macos-computer-use` native-app-only.

@@ -8,6 +8,8 @@ compatibility: Requires macOS, Pi, and Cua Driver.
 
 Use the `computer_use` tool for macOS GUI automation through Cua Driver. The public API is Hermes-compatible; the extension translates wrapper actions to raw Cua tools.
 
+For any browser or web task, including Chrome/Safari/Arc/Brave pages, forms, URLs, screenshots, scraping, tabs, or web-app QA, use `browser-navigation`. Do not use this skill for browser automation. Use this skill for native macOS apps only.
+
 ## Canonical Workflow
 
 - Capture first.
