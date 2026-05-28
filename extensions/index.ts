@@ -72,6 +72,7 @@ export default function macosComputerUse(pi: ExtensionAPI) {
           return ctx.ui.confirm("Approve macOS computer_use action", message);
         },
         runCua: async (args, timeoutMs) => runCua(args, timeoutMs, signal),
+        cwd: ctx.cwd,
       });
 
       if (params.action === "capture" && result.details.ok) captureApproved = true;

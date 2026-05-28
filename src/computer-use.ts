@@ -1,6 +1,5 @@
-import { access, mkdtemp, readFile, realpath, stat } from "node:fs/promises";
+import { access, mkdir, readFile, realpath, stat } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
 export const SUPPORTED_ACTIONS = [
@@ -139,6 +138,7 @@ export interface ExecuteDeps {
   captureContexts?: CaptureContextStore;
   debugDiagnostics?: boolean;
   sleep?: (ms: number) => Promise<void>;
+  cwd?: string;
 }
 
 const MUTATING_ACTIONS = new Set<ComputerUseAction>([
@@ -350,16 +350,17 @@ async function executeCapture(params: ComputerUseParams, deps: ExecuteDeps, time
   let rawAction = "get_window_state";
   let args = cuaCall(rawAction, payload).args;
   let screenshotPath: string | undefined;
-  if (imageOnly) {
-    rawAction = "screenshot";
-    const outDir = await mkdtemp(join(tmpdir(), "pi-cua-shot-"));
-    screenshotPath = join(outDir, "capture.png");
+  let screenshotDir: string | undefined;
+  if (imageOnly || captureMode === "som") {
+    if (imageOnly) rawAction = "screenshot";
+    ({ screenshotDir, screenshotPath } = await createProjectScreenshotPath(deps.cwd));
     args = [...cuaCall(rawAction, payload).args, "--screenshot-out-file", screenshotPath];
   }
 
   const captureResult = await deps.runCua(args, timeout);
-  const normalized = imageOnly && captureResult.code === 0 && screenshotPath
-    ? await normalizeCuaResultAsync({ ...captureResult, stdout: JSON.stringify({ screenshot_path: screenshotPath, cli_stdout: captureResult.stdout }) }, { action: params.action, rawAction }, deps)
+  const screenshotDeps = screenshotDir ? { ...deps, allowedScreenshotDirs: [...(deps.allowedScreenshotDirs ?? []), screenshotDir] } : deps;
+  const normalized = captureResult.code === 0 && screenshotPath
+    ? await normalizeCuaResultAsync(withSyntheticScreenshotPath(captureResult, screenshotPath), { action: params.action, rawAction }, screenshotDeps)
     : await normalizeCuaResultAsync(captureResult, { action: params.action, rawAction }, deps);
   if (!normalized.details.ok) return normalized;
 
@@ -458,12 +459,26 @@ function normalizeParsedData(data: unknown, action: string, rawAction?: string):
     content.push({ type: "image", mimeType: mediaType, data: base64 });
   }
 
-  const warning = action === "capture" && !hasValidImage && !findStringField(data, ["screenshot_path", "image_path", "path", "screenshot_out_file"])
-    ? "capture succeeded but no usable image content was available."
-    : undefined;
-  if (warning) content[0] = { type: "text", text: warning };
+  return { content, details: { ok: true, action, rawAction, data } };
+}
 
-  return { content, details: { ok: true, action, rawAction, data, warning } };
+async function createProjectScreenshotPath(cwd = process.cwd()): Promise<{ screenshotDir: string; screenshotPath: string }> {
+  const screenshotDir = resolve(cwd, ".agents", "screenshot");
+  await mkdir(screenshotDir, { recursive: true });
+  return { screenshotDir, screenshotPath: join(screenshotDir, `capture-${randomUUID()}.png`) };
+}
+
+function withSyntheticScreenshotPath(result: CommandResult, screenshotPath: string): CommandResult {
+  let data: unknown;
+  try {
+    data = parseCuaOutput(result.stdout);
+  } catch {
+    return result;
+  }
+  const payload = data && typeof data === "object" && !Array.isArray(data)
+    ? { ...(data as Record<string, unknown>), screenshot_path: screenshotPath }
+    : { data, screenshot_path: screenshotPath };
+  return { ...result, stdout: JSON.stringify(payload) };
 }
 
 function parseCuaOutput(stdout: string): unknown {
@@ -645,6 +660,8 @@ interface CuaWindow {
   layer?: number;
   minimized?: boolean;
   hidden?: boolean;
+  width?: number;
+  height?: number;
   raw: Record<string, unknown>;
 }
 
@@ -662,6 +679,8 @@ function extractWindows(data: unknown): CuaWindow[] {
     layer: numberField(item, ["layer", "window_layer"]),
     minimized: booleanField(item, ["minimized", "is_minimized"]),
     hidden: booleanField(item, ["hidden", "is_hidden"]),
+    width: numberField(item, ["width", "w"]),
+    height: numberField(item, ["height", "h"]),
     raw: item,
   }));
 }
@@ -682,7 +701,13 @@ function scoreWindow(window: CuaWindow): number {
   if (window.onScreen !== false) score += 4;
   if ((window.layer ?? 0) === 0) score += 2;
   if (!window.minimized && !window.hidden) score += 2;
+  if (isTinyWindow(window)) score -= 10;
   return score;
+}
+
+function isTinyWindow(window: Pick<CuaWindow, "width" | "height">): boolean {
+  if (window.width === undefined || window.height === undefined) return false;
+  return window.width < 240 || window.height < 160 || window.width * window.height < 80_000;
 }
 
 function captureWarning(window: CuaWindow, elementCount: number, existing?: string): string | undefined {
@@ -693,6 +718,7 @@ function captureWarning(window: CuaWindow, elementCount: number, existing?: stri
   if ((window.layer ?? 0) !== 0) warnings.push("target window is not layer 0 and may be a menu/status or thumbnail surface");
   if (window.minimized) warnings.push("target window is minimized");
   if (window.hidden) warnings.push("target app/window is hidden");
+  if (isTinyWindow(window)) warnings.push("target window is very small and may be a thumbnail or Stage Manager surface");
   if (elementCount > 0 && elementCount < 3) warnings.push("capture returned very few AX elements; background control may be unreliable");
   return warnings.length ? warnings.join("; ") : undefined;
 }
